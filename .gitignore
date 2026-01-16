@@ -5,3 +5,4 @@ serviceAccountKey.json
 .env.*
 *adminsdk*
 serviceAccount*
+click_game-backend
