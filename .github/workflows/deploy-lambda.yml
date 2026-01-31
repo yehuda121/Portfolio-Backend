@@ -22,15 +22,12 @@ jobs:
           node-version: "20"
 
       - name: Install production dependencies
-        working-directory: portfolio-backend
         run: npm ci --omit=dev
 
       - name: Create zip
-        working-directory: portfolio-backend
         run: |
           zip -r function.zip . \
             -x ".git/*" ".github/*"
-
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
