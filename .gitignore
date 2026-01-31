@@ -1,6 +1,5 @@
 node_modules
 serviceAccountKey.json
-*.json
 .env
 .env.*
 *adminsdk*
