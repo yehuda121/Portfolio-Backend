@@ -1,21 +1,20 @@
-// backend/src/app.js
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
 
-const snakeRoutes = require('./routes/snakeRoutes');
+const snakeRouter = require("./routes/snake"); // index.js
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: '*' }));
+app.use(cors());
 app.use(express.json());
 
-// Health check 
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.use("/api/snake", snakeRouter);
 
-app.use('/api/snake', snakeRoutes);
-
-app.get('/', (req, res) => {
-  res.send('GameHub backend is running');
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
 });
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
