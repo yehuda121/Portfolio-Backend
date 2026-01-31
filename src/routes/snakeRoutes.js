@@ -1,7 +1,7 @@
 // backend/routes/snakeRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getBestScore, submitScore } = require('../../controllers/snakeController');
+const { getBestScore, submitScore } = require('../controllers/snakeController');
 
 // GET /api/snake/best-score
 router.get('/best-score', getBestScore);
