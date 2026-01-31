@@ -2,9 +2,13 @@
 const { PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
 const { ddb } = require("../../config/awsDdbClient");
 
-const TABLE = process.env.SNAKE_TABLE_NAME || "snake_bestScore";
-const PK_NAME = process.env.SNAKE_PK_NAME || "pk";
-const PK_VALUE = process.env.SNAKE_PK_VALUE || "global";
+const TABLE = "snake_bestScore";
+const PK_NAME = "pk";
+const SK_NAME = "sk";
+
+const PK_VALUE = "snake";
+const SK_VALUE = "global";
+
 
 module.exports = async function submitScore(req, res) {
   try {
@@ -18,7 +22,10 @@ module.exports = async function submitScore(req, res) {
     const currentRes = await ddb.send(
       new GetCommand({
         TableName: TABLE,
-        Key: { [PK_NAME]: PK_VALUE },
+        Key: {
+          [PK_NAME]: PK_VALUE,
+          [SK_NAME]: SK_VALUE,
+        },
       })
     );
 
@@ -32,6 +39,7 @@ module.exports = async function submitScore(req, res) {
           TableName: TABLE,
           Item: {
             [PK_NAME]: PK_VALUE,
+            [SK_NAME]: SK_VALUE,
             bestScore: newBest,
             updatedAt: new Date().toISOString(),
           },
