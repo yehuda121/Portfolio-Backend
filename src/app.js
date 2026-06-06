@@ -1,5 +1,5 @@
 const express = require("express");
-const { createCorsMiddleware } = require("./config/cors");
+const { createCorsMiddleware, applyCorsHeaders } = require("./config/cors");
 const logger = require("./utils/logger");
 
 const app = express();
@@ -30,7 +30,8 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
+  applyCorsHeaders(req, res); // CORS on all error responses
   if (err.message === "Not allowed by CORS") {
     return res.status(403).json({ ok: false, error: "cors_forbidden" });
   }
