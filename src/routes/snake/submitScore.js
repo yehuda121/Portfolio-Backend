@@ -1,45 +1,38 @@
-// src/routes/snake/submitScore.js
 const { PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
-const { ddb } = require("../../config/awsDdbClient");
+const { ddb } = require("../../config/dynamo");
+const logger = require("../../utils/logger");
+const { mapDynamoError } = require("../../utils/mapDynamoError");
 
-const TABLE = "snake_bestScore";
-const PK_NAME = "pk";
-const SK_NAME = "sk";
-
+const TABLE = process.env.SNAKE_BEST_SCORE_TABLE || "snake_bestScore";
 const PK_VALUE = "snake";
 const SK_VALUE = "global";
-
+const MAX_SCORE = 100000;
 
 module.exports = async function submitScore(req, res) {
   try {
     const score = Number(req.body?.score);
 
-    if (!Number.isFinite(score) || score < 0) {
-      return res.status(400).json({ message: "Invalid score" });
+    if (!Number.isFinite(score) || score < 0 || score > MAX_SCORE) {
+      return res.status(400).json({ ok: false, error: "invalid_score" });
     }
 
-    // Read current best
     const currentRes = await ddb.send(
       new GetCommand({
         TableName: TABLE,
-        Key: {
-          [PK_NAME]: PK_VALUE,
-          [SK_NAME]: SK_VALUE,
-        },
+        Key: { pk: PK_VALUE, sk: SK_VALUE },
       })
     );
 
     const currentBest = Number(currentRes.Item?.bestScore ?? 0) || 0;
     const newBest = Math.max(score, currentBest);
 
-    // Save only if improved 
     if (newBest !== currentBest) {
       await ddb.send(
         new PutCommand({
           TableName: TABLE,
           Item: {
-            [PK_NAME]: PK_VALUE,
-            [SK_NAME]: SK_VALUE,
+            pk: PK_VALUE,
+            sk: SK_VALUE,
             bestScore: newBest,
             updatedAt: new Date().toISOString(),
           },
@@ -47,9 +40,11 @@ module.exports = async function submitScore(req, res) {
       );
     }
 
-    return res.json({ bestScore: newBest });
+    return res.json({ ok: true, bestScore: newBest });
   } catch (err) {
-    console.error("[snake/submitScore]", err);
-    return res.status(500).json({ message: "Internal Server Error" });
+    const error = mapDynamoError(err);
+    logger.error("snake_submit_score_failed", { message: err.message, error });
+    const status = error === "aws_not_configured" ? 503 : 500;
+    return res.status(status).json({ ok: false, error });
   }
 };

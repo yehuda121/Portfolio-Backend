@@ -1,31 +1,27 @@
-// src/routes/snake/getBestScore.js
 const { GetCommand } = require("@aws-sdk/lib-dynamodb");
-const { ddb } = require("../../config/awsDdbClient");
+const { ddb } = require("../../config/dynamo");
+const logger = require("../../utils/logger");
+const { mapDynamoError } = require("../../utils/mapDynamoError");
 
-const TABLE = "snake_bestScore";
-const PK_NAME = "pk";
-const SK_NAME = "sk";
-
+const TABLE = process.env.SNAKE_BEST_SCORE_TABLE || "snake_bestScore";
 const PK_VALUE = "snake";
 const SK_VALUE = "global";
 
+module.exports = async function getBestScore(_req, res) {
+  try {
+    const result = await ddb.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { pk: PK_VALUE, sk: SK_VALUE },
+      })
+    );
 
-module.exports = async function getBestScore(req, res) {
-    try {
-        const result = await ddb.send(
-            new GetCommand({
-                TableName: TABLE,
-                Key: {
-                    [PK_NAME]: PK_VALUE,
-                    [SK_NAME]: SK_VALUE,
-                },
-            })
-        );
-
-        const bestScore = Number(result.Item?.bestScore ?? 0) || 0;
-        return res.json({ bestScore });
-    } catch (err) {
-        console.error("[snake/getBestScore]", err);
-        return res.status(500).json({ message: "Internal Server Error" });
-    }
+    const bestScore = Number(result.Item?.bestScore ?? 0) || 0;
+    return res.json({ ok: true, bestScore });
+  } catch (err) {
+    const error = mapDynamoError(err);
+    logger.error("snake_get_best_score_failed", { message: err.message, error });
+    const status = error === "aws_not_configured" ? 503 : 500;
+    return res.status(status).json({ ok: false, error });
+  }
 };

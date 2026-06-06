@@ -1,18 +1,41 @@
 const express = require("express");
-const cors = require("cors");
-
-const snakeRouter = require("./routes/snake");
+const { createCorsMiddleware } = require("./config/cors");
+const logger = require("./utils/logger");
 
 const app = express();
 
-app.use(cors());
-app.options("*", cors());
-app.use(express.json());
+app.use(createCorsMiddleware());
+app.use(express.json({ limit: "16kb" }));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info("request", {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      ms: Date.now() - start,
+    });
+  });
+  next();
+});
+
+const snakeRouter = require("./routes/snake");
+const quizRouter = require("./routes/quiz");
 
 app.use("/api/snake", snakeRouter);
+app.use("/api/quiz", quizRouter);
 
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.use((err, _req, res, _next) => {
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({ ok: false, error: "cors_forbidden" });
+  }
+  logger.error("unhandled_error", { message: err.message });
+  return res.status(500).json({ ok: false, error: "internal_server_error" });
 });
 
 module.exports = app;
